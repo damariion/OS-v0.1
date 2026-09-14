@@ -8,32 +8,40 @@ ORG  0x7C00
     mov ss, ax
     mov sp, 0x7C00
     sti
+    
+    jmp far 0x0:main
 
-    jmp 0x0:start
+main:
 
-start:
+    mov cl, 2
+    mov bx, buffer
+    call disk.read
 
-    mov si, message
-    call iostr
+    mov si, buffer
+    call console.write
 
     jmp $
 
-iochr:
-    mov ah, 0xE
-    mov bx, 0
-    int 0x10
-    ret
-
-iostr:
+console.write:;(input->si)
     lodsb
     cmp al, 0
     je .done
-    call iochr
-    jmp iostr
+    mov ah, 0xE
+    mov bx, 0
+    int 0x10
+    jmp console.write
 .done:
     ret
 
-message: db "Hello, World!", 0
+disk.read:;(sector->cl, output->bx)
+    mov ah, 0x2
+    mov al, 1
+    mov ch, 0
+    mov dh, 0
+    int 0x13
+    ret
 
 times 510 - ($-$$) db 0
 dw 0xAA55
+
+buffer:
