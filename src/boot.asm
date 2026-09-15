@@ -8,7 +8,6 @@
     mov es, ax
     mov ss, ax
     mov sp, 0x7C00
-    sti
 
     jmp far 0x0:init.real
 
@@ -19,12 +18,11 @@ init.real:
     int 0x15
 
     ; switch to protected mode
-    cli
     lgdt [gdt.desc]
     mov eax, cr0
     or al, 1
     mov cr0, eax
-    sti
+
     jmp 0x8:init.privileged
 
 ; global descriptor table
@@ -51,25 +49,76 @@ gdt.desc:
 init.privileged:
 
     ; stabilise segments
-    cli
     mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov ss, ax
     mov fs, ax
     mov gs, ax
-    mov ebp, 0x200000
+    mov ebp, 0x5000
     mov esp, ebp
-    sti
 
-    jmp $
+    ; place kernel in memory
+    mov ebx, 1
+    mov ecx, 1
+    mov edi, 0x10000
+    call disk.read
 
-disk.read:; (LBA->ebx, sectors->cl)
+    jmp edi
+
+disk.read:; (sector->ebx, count->ecx, output->edi)
 
     pushfd
     pushad
     
-    ...
+    ; set: drive + LBA[24:]
+    mov edx, 0x1F6
+    mov eax, ebx
+    shr eax, 24
+    or al, 0xE0
+    out dx, al
+
+    ; set: sector count
+    mov edx, 0x1F2
+    mov al, cl
+    out dx, al
+
+    ; set: LBA[:7]
+    mov edx, 0x1F3
+    mov eax, ebx
+    out dx, al
+
+    ; set: LBA[8:15]
+    mov edx, 0x1F4
+    mov eax, ebx
+    shr eax, 8
+    out dx, al
+
+    ; set: LBA[16:23]
+    mov edx, 0x1F5
+    mov eax, ebx
+    shr eax, 16
+    out dx, al
+
+    ; call: read with retry
+    mov edx, 0x1F7
+    mov al, 0x20
+    out dx, al
+
+.await:
+
+    ; test: DRQ set?
+    in al, dx
+    test al, 8
+    jz .await
+
+    ; load 256 * sectors in [di+i for i in 256]
+    mov eax, 256
+    mul ecx
+    mov ecx, eax
+    mov edx, 0x1F0
+    cld
+    rep insw
 
     popad
     popfd

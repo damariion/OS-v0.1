@@ -1,7 +1,7 @@
 OUTPUT_FORMAT(binary)
 SECTIONS
 {
-    . = 1M;
+    . = 0x10000;
     .text   : { *(.text) }
     .rodata : { *(.rodata) }
     .data   : { *(.data) }
