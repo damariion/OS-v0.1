@@ -1,8 +1,9 @@
 [BITS 16]
 [ORG  0x7C00]
 
+    cli ; disable interrupts
+    
     ; stabilise segment registers
-    cli
     xor ax, ax
     mov ds, ax
     mov es, ax
@@ -60,7 +61,7 @@ init.privileged:
 
     ; place kernel in memory
     mov ebx, 1
-    mov ecx, 1
+    mov ecx, 2
     mov edi, 0x10000
     call disk.read
 
@@ -112,7 +113,7 @@ disk.read:; (sector->ebx, count->ecx, output->edi)
     test al, 8
     jz .await
 
-    ; load 256 * sectors in [di+i for i in 256]
+    ; copy: sectors
     mov eax, 256
     mul ecx
     mov ecx, eax

@@ -1,20 +1,27 @@
-SECTOR = bs=512 count=1
+LDFLAGS = -T linker.ld
+GCFLAGS = -g -O0 -ffreestanding -nostdlib -I src/include -Wall -Wextra $(NSFLAGS)
 
-build: boot.bin krnl.bin
-	dd if=./bin/boot.bin $(SECTOR) > ./bin/os.bin
-	dd if=./bin/krnl.bin $(SECTOR) >> ./bin/os.bin
-	$(MAKE) clean
+BIN_DIR = bin
+SRC_DIR = src
+
+OUTPUT_PATH = $(BIN_DIR)/out/OS-v0.1.iso
+OBJECT_TREE = $(BIN_DIR)/load_c.o $(BIN_DIR)/kernel.o
+BINARY_TREE = $(BIN_DIR)/booter.bin $(BIN_DIR)/kernel.bin
+
+build: booter.bin kernel.bin
+	
+	dd if=$(BIN_DIR)/booter.bin bs=512 count=1  > $(OUTPUT_PATH)
+	dd if=$(BIN_DIR)/kernel.bin bs=512 count=1 >> $(OUTPUT_PATH)
+
+kernel.bin: load_c.o kernel.o
+	i686-elf-ld $(LDFLAGS) $(OBJECT_TREE) -o $(BIN_DIR)/kernel.bin
+booter.bin:
+	nasm -f bin $(SRC_DIR)/.boot/booter.asm -o $(BIN_DIR)/booter.bin
+
+load_c.o:
+	nasm -f elf $(SRC_DIR)/.boot/load_c.asm -o $(BIN_DIR)/load_c.o
+kernel.o:
+	i686-elf-gcc $(GCFLAGS) -std=gnu99 -c $(SRC_DIR)/kernel.c -o $(BIN_DIR)/kernel.o
 
 clean:
-	rm -rf ./bin/boot.bin
-	rm -rf ./bin/krnl.bin
-	rm -rf ./bin/krnl.o
-	rm -rf ./bin/krnl.asm.o
-
-boot.bin:
-	nasm -f bin ./src/boot.asm -o ./bin/boot.bin
-
-krnl.bin:
-	nasm -f elf -g -o ./bin/krnl.asm.o ./src/krnl.asm 
-	i686-elf-ld -g -relocatable -o ./bin/krnl.o ./bin/krnl.asm.o
-	i686-elf-gcc -ffreestanding -O0 -nostdlib -T link.ld -o ./bin/krnl.bin ./bin/krnl.o
+	rm -rf $(BINARY_TREE)

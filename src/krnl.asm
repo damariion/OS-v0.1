@@ -1,5 +1,0 @@
-BITS 32
-
-_start:
-
-    jmp $
