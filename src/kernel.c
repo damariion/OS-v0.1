@@ -1,6 +1,6 @@
-#include "include/types.h"
+#include "include/kernel.h"
 
 void kmain()
 {
-    i8 i = 1;
+    ;;
 }

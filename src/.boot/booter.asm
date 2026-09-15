@@ -114,7 +114,7 @@ disk.read:; (sector->ebx, count->ecx, output->edi)
     jz .await
 
     ; copy: sectors
-    mov eax, 256
+    mov eax, 256 ; amount of words
     mul ecx
     mov ecx, eax
     mov edx, 0x1F0
